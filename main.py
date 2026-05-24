@@ -130,6 +130,7 @@ def jugar():
     
 
 print("Bienvenido, adivina la palabra secreta")
+print("prueba")
 jugar()
 
 

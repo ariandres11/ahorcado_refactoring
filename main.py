@@ -1,300 +1,77 @@
 import random
-from typing import Final
-
-INTENTOS_INICIALES: Final[int] = 6
-
-ESTADOS_AHORCADO = [
-    """
-      +---+
-      |   |
-          |
-          |
-          |
-          |
-    =========
-    """,
-    """
-      +---+
-      |   |
-      O   |
-          |
-          |
-          |
-    =========
-    """,
-    """
-      +---+
-      |   |
-      O   |
-      |   |
-          |
-          |
-    =========
-    """,
-    """
-      +---+
-      |   |
-      O   |
-     /|   |
-          |
-          |
-    =========
-    """,
-    """
-      +---+
-      |   |
-      O   |
-     /|\\  |
-          |
-          |
-    =========
-    """,
-    """
-      +---+
-      |   |
-      O   |
-     /|\\  |
-     /    |
-          |
-    =========
-    """,
-    """
-      +---+
-      |   |
-      O   |
-     /|\\  |
-     / \\  |
-          |
-    =========
-    """,
-]
+from constantes import MENSAJES, ESTADOS_AHORCADO, INTENTOS_INICIALES
+from palabras import obtener_palabras
 
 
-def jugar():
-    palabras = obtener_palabras()
+class JuegoAhorcado:
+    def __init__(self, palabras: list[str], intentos_iniciales: int):
+        self.palabra_adivinar = random.choice(palabras)
+        self.letras_usadas = []
+        self.intentos_restantes = intentos_iniciales
 
-    palabra_adivinar = elegir_palabra_aleatoria(palabras)
+    def verificar_letra_usada(self, letra: str) -> bool:
+        return letra in self.letras_usadas
 
-    letras_usadas = []
-    intentos_restantes = INTENTOS_INICIALES
-
-    letras_palabra = list(palabra_adivinar)
-
-    while intentos_restantes > 0:
-        mostrar_progreso(palabra_adivinar, letras_usadas, intentos_restantes)
-
-        letra = pedir_ingreso_letra()
-
-        if verificar_letra_usada(letra, letras_usadas):
-            print(f"Ya usaste la letra '{letra}', arriesga otra.")
+    def arriesgar_letra(self, letra: str) -> bool:
+        self.letras_usadas.append(letra)
+        if letra in self.palabra_adivinar:
+            return True
         else:
-            letras_usadas.append(letra)
+            self.intentos_restantes -= 1
+            return False
 
-            if letra in letras_palabra:
-                print(f"Muy bien! Acertaste la letra {letra}")
-                verificar_ganador = all(l in letras_usadas for l in letras_palabra)
-                if verificar_ganador:
-                    mensaje_ganador(palabra_adivinar)
-                    return
-            else:
-                print(f"Lo siento, la letra {letra} no está en la palabra.")
-                intentos_restantes -= 1
+    def obtener_progreso(self) -> list[str]:
+        return [
+            letra if letra in self.letras_usadas else "_"
+            for letra in self.palabra_adivinar
+        ]
 
-    mensaje_perdedor(palabra_adivinar)
+    def esta_ganado(self) -> bool:
+        return all(letra in self.letras_usadas for letra in self.palabra_adivinar)
 
-
-def mensaje_perdedor(palabra_adivinar: str):
-    print(ESTADOS_AHORCADO[0])
-    print("Perdiste x.x")
-    print(f"La palabra era: {palabra_adivinar}")
-
-
-def mensaje_ganador(palabra_adivinar: str):
-    print(f"¡Felicidades! Adivinaste la palabra: {palabra_adivinar}")
+    def esta_perdido(self) -> bool:
+        return self.intentos_restantes <= 0
 
 
 def pedir_ingreso_letra() -> str:
     while True:
-        letra = input("Arriesga una letra: ").lower()
+        letra = input(MENSAJES["pedir_letra"]).lower()
         if len(letra) == 1 and letra.isalpha():
             return letra
-        print("Debes ingresar una única letra válida. Intenta de nuevo.")
+        print(MENSAJES["error_letra_invalida"])
 
 
-def verificar_letra_usada(letra: str, letras_usadas: list[str] = []) -> bool:
-    return letra in letras_usadas
+def jugar_consola(intentos_iniciales: int):
+    print(MENSAJES["bienvenida"])
+
+    palabras = obtener_palabras()
+    ahorcado = JuegoAhorcado(palabras, intentos_iniciales)
+
+    while not ahorcado.esta_perdido() and not ahorcado.esta_ganado():
+        progreso = ahorcado.obtener_progreso()
+
+        print(ESTADOS_AHORCADO[ahorcado.intentos_restantes])
+        print(f"Palabra: {' '.join(progreso)}")
+        print(f"Letras usadas: {', '.join(ahorcado.letras_usadas)}")
+        print(f"Intentos restantes: {ahorcado.intentos_restantes}")
+
+        letra = pedir_ingreso_letra()
+
+        if ahorcado.verificar_letra_usada(letra):
+            print(MENSAJES["letra_repetida"].format(letra=letra))
+        else:
+            acerto = ahorcado.arriesgar_letra(letra)
+            if acerto:
+                print(MENSAJES["acierto"].format(letra=letra))
+            else:
+                print(MENSAJES["fallo"].format(letra=letra))
+
+    if ahorcado.esta_ganado():
+        print(MENSAJES["victoria"].format(palabra=ahorcado.palabra_adivinar))
+    else:
+        print(ESTADOS_AHORCADO[ahorcado.intentos_restantes])
+        print(MENSAJES["derrota"].format(palabra=ahorcado.palabra_adivinar))
 
 
-def mostrar_progreso(
-    palabra_adivinar: str, letras_usadas: list[str], intentos_restantes: int
-):
-    progreso = [letra if letra in letras_usadas else "_" for letra in palabra_adivinar]
-
-    print(ESTADOS_AHORCADO[intentos_restantes])
-    print(f"Palabra: {progreso}")
-    print("Intentos restantes: ", intentos_restantes)
-    print("Letras usadas:", letras_usadas)
-
-
-def obtener_palabras() -> list[str]:
-    return [
-        "cama",
-        "perro",
-        "gato",
-        "auto",
-        "casa",
-        "arbol",
-        "libro",
-        "computadora",
-        "teclado",
-        "mouse",
-        "pantalla",
-        "cable",
-        "disco",
-        "memoria",
-        "procesador",
-        "placa",
-        "fuente",
-        "gabinete",
-        "auricular",
-        "parlante",
-        "telefono",
-        "celular",
-        "reloj",
-        "camara",
-        "lampara",
-        "silla",
-        "mesa",
-        "puerta",
-        "ventana",
-        "pared",
-        "piso",
-        "techo",
-        "cocina",
-        "baño",
-        "dormitorio",
-        "living",
-        "patio",
-        "garage",
-        "jardin",
-        "balcon",
-        "calle",
-        "avenida",
-        "vereda",
-        "plaza",
-        "parque",
-        "bosque",
-        "selva",
-        "desierto",
-        "montaña",
-        "playa",
-        "oceano",
-        "mar",
-        "rio",
-        "lago",
-        "laguna",
-        "arroyo",
-        "cascada",
-        "puente",
-        "tunel",
-        "estacion",
-        "tren",
-        "avion",
-        "barco",
-        "subte",
-        "colectivo",
-        "bicicleta",
-        "moto",
-        "camion",
-        "camioneta",
-        "grua",
-        "cohete",
-        "satelite",
-        "planeta",
-        "estrella",
-        "galaxia",
-        "universo",
-        "espacio",
-        "astronauta",
-        "cometa",
-        "asteroide",
-        "sol",
-        "luna",
-        "tierra",
-        "marte",
-        "jupiter",
-        "saturno",
-        "urano",
-        "neptuno",
-        "pluton",
-        "mercurio",
-        "venus",
-        "madera",
-        "metal",
-        "plastico",
-        "vidrio",
-        "papel",
-        "carton",
-        "cemento",
-        "ladrillo",
-        "piedra",
-        "arena",
-        "tierra",
-        "agua",
-        "fuego",
-        "aire",
-        "viento",
-        "lluvia",
-        "nieve",
-        "granizo",
-        "tormenta",
-        "trueno",
-        "relampago",
-        "nube",
-        "niebla",
-        "humo",
-        "ceniza",
-        "carbon",
-        "petroleo",
-        "gas",
-        "energia",
-        "electricidad",
-        "iman",
-        "brujula",
-        "mapa",
-        "globo",
-        "espejo",
-        "reloj",
-        "bruja",
-        "mago",
-        "duende",
-        "fantasma",
-        "monstruo",
-        "dragon",
-        "vampiro",
-        "zombi",
-        "esqueleto",
-        "calavera",
-        "tumba",
-        "castillo",
-        "palacio",
-        "templo",
-        "iglesia",
-        "museo",
-        "teatro",
-        "cine",
-        "estadio",
-        "gimnasio",
-        "escuela",
-        "colegio",
-        "universidad",
-    ]
-
-
-def elegir_palabra_aleatoria(palabras: list[str]) -> str:
-    return random.choice(palabras)
-
-
-print("Bienvenido, adivina la palabra secreta")
-print("prueba")
-jugar()
+if __name__ == "__main__":
+    jugar_consola(INTENTOS_INICIALES)
